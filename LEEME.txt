@@ -24,3 +24,19 @@ IMPORTANTE PARA LA CLIENTA
 - No uses la app en dos equipos a la vez: no se sincronizan entre si.
 - La camara como lector de codigos funciona en Chrome para Android; en iPhone usa un lector USB/Bluetooth o escribe el codigo.
 - El PIN protege contra curiosos, no contra expertos.
+
+==================== VERSIÓN 2 ====================
+Novedades:
+ - ⚡ Entrada rápida: escanea producto por producto (cámara continua o lector USB); cada lectura suma unidades. Si el código no existe, lo creas ahí mismo.
+ - 📋 Conteo de inventario escaneando, con ajuste automático de diferencias.
+ - 📥 Importar productos desde Excel (CSV) con plantilla descargable.
+ - 🎒 Listas de útiles escolares: se cargan completas en la venta y avisa qué falta.
+ - 💸 Gastos y utilidad neta real (Inicio, Gastos y Reportes).
+ - 🖨 Informe mensual imprimible / PDF.
+ - 🏷 Códigos EAN-13 propios ("Generar") y etiquetas imprimibles.
+ - Precio por mayor, anular compras.
+ - Estatus: pantalla de bienvenida con logo, modo oscuro, meta diaria con barra de progreso, resumen del día por WhatsApp.
+
+CÓMO ACTUALIZAR (GitHub): en el repositorio papeleria-app, sube estos archivos reemplazando los anteriores:
+ index.html, sw.js, manifest.json, icon-192.png, icon-512.png, icon-maskable-512.png
+Abre la app con internet DOS veces: la primera descarga la versión nueva, la segunda ya la muestra. Tus datos no se pierden.
