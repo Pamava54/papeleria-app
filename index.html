@@ -395,8 +395,8 @@ async function pedidoPDF(prov,items,num,fecha){
 async function pedPdf(pid,solo){const pv=S.prv.find(x=>x.id===pid);
  const its=[...document.querySelectorAll('[data-ped="'+pid+'"]')].map(i=>({p:P(i.dataset.id),q:num(i.value)})).filter(x=>x.p&&x.q>0).map(x=>({n:x.p.nombre,sub:[x.p.marca,x.p.ref?'Ref. '+x.p.ref:'',x.p.cod].filter(Boolean).join(' · ')||'—',hay:x.p.stock,min:x.p.min,q:x.q}));
  if(!its.length){toast('No hay cantidades para pedir');return}
- toast('Preparando el PDF…');const d=new Date(),f=ymd(d),num='PD-'+f.replace(/-/g,'')+'-'+pad(d.getHours())+pad(d.getMinutes());
- let blob;try{blob=await pedidoPDF(pv,its,num,f)}catch(e){toast('No se pudo crear el PDF');return}
+ toast('Preparando el PDF…');const d=new Date(),f=ymd(d),nPed='PD-'+f.replace(/-/g,'')+'-'+pad(d.getHours())+pad(d.getMinutes());
+ let blob;try{blob=await pedidoPDF(pv,its,nPed,f)}catch(e){toast('No se pudo crear el PDF');return}
  const nom='Pedido_'+(pv?pv.nombre:'proveedor').replace(/[^A-Za-z0-9]+/g,'_')+'_'+f+'.pdf',file=new File([blob],nom,{type:'application/pdf'});
  try{if(!solo&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Pedido '+S.cfg.nombre,text:'Pedido para '+(pv?pv.nombre:'')});return}}catch(e){if(e&&e.name==='AbortError')return}
  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nom;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);toast('PDF descargado. Adjúntalo en WhatsApp.')}
@@ -511,7 +511,7 @@ V.cfg=()=>{const c=S.cfg;return `<h2>Ajustes</h2>
  ${usuariosCard()}
  <div class="card"><b>Opciones de venta</b><label class="ml" style="margin-top:6px"><input type="checkbox" style="width:auto" ${c.neg?'checked':''} onchange="S.cfg.neg=this.checked;save()"> Permitir vender aunque el stock esté en cero</label></div>
  <div class="card"><b>Instalar como aplicación</b><p style="color:var(--mu);font-size:13px">Instálala una vez con internet y luego abre desde el ícono, sin conexión.</p>${deferred?'<button class="btn" onclick="instalar()">Instalar ahora</button>':'<p style="font-size:13px">En el celular: menú del navegador → “Agregar a pantalla de inicio” / “Instalar app”.</p>'}</div>
- <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2s</p></div>`};
+ <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2t</p></div>`};
 function logoUp(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),m=160,k=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.cfg.logo=c.toDataURL('image/png');save();render()};im.src=r.result};r.readAsDataURL(f)}
 function brandSave(){S.cfg.nombre=val('b_n').trim()||BRAND.nombre;S.cfg.color=val('b_c');S.cfg.acento=val('b_a');brand();save();render();toast('Marca guardada')}
 async function exportar(compartir){const txt=JSON.stringify(S),nombre='respaldo_'+S.cfg.nombre.replace(/[^A-Za-z0-9]+/g,'_')+'_'+hoy()+'.json';S.cfg.resp=hoy();save();
