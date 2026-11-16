@@ -348,7 +348,57 @@ function prvForm(id){const x=id?S.prv.find(y=>y.id===id):{nombre:'',tel:''};moda
 function prvSave(id){const n=val('pv_n').trim();if(!n){toast('Escribe el nombre');return}if(id){const x=S.prv.find(y=>y.id===id);x.nombre=n;x.tel=val('pv_t')}else S.prv.push({id:uid(),nombre:n,tel:val('pv_t')});save();prvList()}
 function pedido(){const L=S.prod.filter(p=>!isKit(p)&&p.act!==false&&p.min>0&&p.stock<=p.min);if(!L.length){toast('Nada por pedir: el stock está sobre el mínimo ✔');return}
  const g={};L.forEach(p=>{(g[p.prov||'']=g[p.prov||'']||[]).push(p)});
- modal(`<h3>Pedido sugerido</h3><p style="color:var(--mu);font-size:13px">Cantidad sugerida = para llegar al doble del mínimo. Puedes cambiarla antes de enviar.</p>${Object.entries(g).map(([pid,ps])=>{const pv=S.prv.find(x=>x.id===pid);return `<div class="card"><b>${pv?esc(pv.nombre):'Sin proveedor asignado'}</b>${ps.map(p=>`<div class="row"><div class="g">${esc(p.nombre)}<small>Hay ${p.stock} · mínimo ${p.min}</small></div><input type="number" style="width:80px" data-ped="${pid}" data-n="${esc(p.nombre)}" value="${Math.max(1,Math.ceil(p.min*2-p.stock))}"></div>`).join('')}<div class="tb" style="margin-top:8px"><button class="btn" onclick="pedWa('${pid}')">📲 Enviar por WhatsApp</button></div></div>`}).join('')}<div class="tb"><span class="sp"></span><button class="btn sec" onclick="closeM()">Cerrar</button></div>`,true)}
+ modal(`<h3>Pedido sugerido</h3><p style="color:var(--mu);font-size:13px">Cantidad sugerida = para llegar al doble del mínimo. Puedes cambiarla antes de enviar.</p>${Object.entries(g).map(([pid,ps])=>{const pv=S.prv.find(x=>x.id===pid);return `<div class="card"><b>${pv?esc(pv.nombre):'Sin proveedor asignado'}</b>${ps.map(p=>`<div class="row"><div class="g">${esc(p.nombre)}<small>Hay ${p.stock} · mínimo ${p.min}</small></div><input type="number" style="width:80px" data-ped="${pid}" data-id="${p.id}" data-n="${esc(p.nombre)}" value="${Math.max(1,Math.ceil(p.min*2-p.stock))}"></div>`).join('')}<div class="tb" style="margin-top:8px"><button class="btn am" onclick="pedPdf('${pid}')">📄 Pedido en PDF</button><button class="btn sec" onclick="pedPdf('${pid}',true)">⬇ Descargar PDF</button><button class="btn sec" onclick="pedWa('${pid}')">📲 Solo texto</button></div></div>`}).join('')}<div class="tb"><span class="sp"></span><button class="btn sec" onclick="closeM()">Cerrar</button></div>`,true)}
+/* --- PEDIDO EN PDF (con logo y nombre del negocio; se arma en el equipo, sin internet) --- */
+const shade=(h,f)=>{const n=parseInt(String(h||'#0e7c86').replace('#',''),16),m=v=>Math.round(v*f);return `rgb(${m(n>>16&255)},${m(n>>8&255)},${m(n&255)})`};
+const loadImg=src=>new Promise(r=>{if(!src)return r(null);const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(null);i.src=src});
+function rrect(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function fitTxt(x,t,mw){t=String(t);if(x.measureText(t).width<=mw)return t;while(t.length>1&&x.measureText(t+'…').width>mw)t=t.slice(0,-1);return t+'…'}
+function pdfFromJpegs(urls,W,H){const enc=new TextEncoder(),chunks=[],offs=[];let pos=0;
+ const add=u=>{chunks.push(u);pos+=u.length},t=s=>add(enc.encode(s)),n=urls.length;
+ const bin=u=>{const b=atob(u.split(',')[1]),a=new Uint8Array(b.length);for(let i=0;i<b.length;i++)a[i]=b.charCodeAt(i);return a};
+ add(new Uint8Array([37,80,68,70,45,49,46,52,10,37,226,227,207,211,10]));
+ const obj=(id,fn)=>{offs[id]=pos;t(id+' 0 obj\n');fn();t('endobj\n')};
+ obj(1,()=>t('<< /Type /Catalog /Pages 2 0 R >>\n'));
+ obj(2,()=>t('<< /Type /Pages /Kids ['+urls.map((_,i)=>(3+3*i)+' 0 R').join(' ')+'] /Count '+n+' >>\n'));
+ urls.forEach((u,i)=>{const jb=bin(u),pg=3+3*i,c='q 595.28 0 0 841.89 0 0 cm /Im0 Do Q\n';
+  obj(pg,()=>t('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im0 '+(pg+2)+' 0 R >> >> /Contents '+(pg+1)+' 0 R >>\n'));
+  obj(pg+1,()=>t('<< /Length '+c.length+' >>\nstream\n'+c+'endstream\n'));
+  obj(pg+2,()=>{t('<< /Type /XObject /Subtype /Image /Width '+W+' /Height '+H+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jb.length+' >>\nstream\n');add(jb);t('\nendstream\n')})});
+ const xr=pos,tot=3*n+3;t('xref\n0 '+tot+'\n0000000000 65535 f \n');for(let id=1;id<tot;id++)t(String(offs[id]).padStart(10,'0')+' 00000 n \n');
+ t('trailer\n<< /Size '+tot+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF\n');return new Blob(chunks,{type:'application/pdf'})}
+async function pedidoPDF(prov,items,num,fecha){
+ const logo=await loadImg(S.cfg.logo),K=1240/794,PW=794,PH=1123,col=S.cfg.color||'#0e7c86',dk=shade(col,.62),ac=S.cfg.acento||'#f5a524',nombre=S.cfg.nombre||'Papelería',F='"Segoe UI",Roboto,Arial,sans-serif',pages=[];let x,y;
+ const hdr=first=>{const cv=document.createElement('canvas');cv.width=1240;cv.height=1754;x=cv.getContext('2d');x.scale(K,K);x.fillStyle='#fff';x.fillRect(0,0,PW,PH);pages.push({cv,x});
+  const bh=first?150:64,g=x.createLinearGradient(0,0,PW,bh);g.addColorStop(0,col);g.addColorStop(1,dk);x.fillStyle=g;x.fillRect(0,0,PW,bh);x.fillStyle=ac;x.fillRect(0,bh,PW,5);
+  if(first){x.fillStyle='#fff';rrect(x,40,33,84,84,18);x.fill();
+   if(logo){const s=Math.min(72/logo.width,72/logo.height),w=logo.width*s,h=logo.height*s;x.drawImage(logo,40+(84-w)/2,33+(84-h)/2,w,h)}else{x.fillStyle=col;x.font='bold 40px '+F;x.textAlign='center';x.textBaseline='middle';x.fillText((nombre.trim()[0]||'P').toUpperCase(),82,76)}
+   x.textAlign='left';x.textBaseline='alphabetic';x.fillStyle='#fff';x.font='bold 30px '+F;x.fillText(fitTxt(x,nombre,420),144,70);
+   x.font='600 13px '+F;x.globalAlpha=.85;x.fillText('PEDIDO A PROVEEDOR',144,98);x.globalAlpha=1;
+   x.textAlign='right';x.font='bold 15px '+F;x.fillText('Pedido N.º '+num,754,66);x.font='13px '+F;x.fillText(fecha,754,90);x.textAlign='left';
+   y=bh+5+24;x.fillStyle='#f3f6f8';rrect(x,40,y,714,76,12);x.fill();x.fillStyle='#6b7c88';x.font='11px '+F;x.fillText('PROVEEDOR',60,y+24);x.fillText('TELÉFONO / WHATSAPP',420,y+24);
+   x.fillStyle='#1d2b36';x.font='bold 19px '+F;x.fillText(fitTxt(x,prov?prov.nombre:'Sin proveedor asignado',340),60,y+54);x.font='bold 17px '+F;x.fillText(prov&&prov.tel?prov.tel:'—',420,y+54);y+=76+22}
+  else{x.fillStyle='#fff';x.font='bold 17px '+F;x.fillText(nombre,40,40);x.textAlign='right';x.font='13px '+F;x.fillText('Pedido N.º '+num+' · '+fecha,754,40);x.textAlign='left';y=bh+5+20}
+  x.fillStyle=col;rrect(x,40,y,714,32,8);x.fill();x.fillStyle='#fff';x.font='bold 12px '+F;x.fillText('#',54,y+21);x.fillText('PRODUCTO',84,y+21);x.fillText('HAY / MÍN.',500,y+21);x.textAlign='right';x.fillText('CANTIDAD',742,y+21);x.textAlign='left';y+=32};
+ hdr(true);const RH=46;let i=0;
+ for(const it of items){if(y+RH>PH-110)hdr(false);i++;if(i%2===0){x.fillStyle='#f7fafb';x.fillRect(40,y,714,RH)}
+  x.fillStyle='#8a99a4';x.font='12px '+F;x.fillText(String(i),54,y+28);x.fillStyle='#1d2b36';x.font='bold 14px '+F;x.fillText(fitTxt(x,it.n,380),84,y+21);
+  x.fillStyle='#6b7c88';x.font='11px '+F;x.fillText(fitTxt(x,it.sub,380),84,y+37);x.fillStyle='#1d2b36';x.font='13px '+F;x.fillText(it.hay+' / '+it.min,500,y+28);
+  const qs=String(it.q);x.font='bold 17px '+F;const w=Math.max(54,x.measureText(qs).width+28);x.fillStyle=ac;rrect(x,742-w,y+8,w,30,15);x.fill();x.fillStyle='#222';x.textAlign='center';x.fillText(qs,742-w/2,y+29);x.textAlign='left';
+  x.strokeStyle='#e3eaee';x.lineWidth=1;x.beginPath();x.moveTo(40,y+RH);x.lineTo(754,y+RH);x.stroke();y+=RH}
+ if(y+120>PH-40)hdr(false);y+=18;const un=items.reduce((a,b)=>a+b.q,0);
+ x.fillStyle=dk;rrect(x,40,y,714,50,12);x.fill();x.fillStyle='#fff';x.font='bold 15px '+F;x.fillText('TOTAL DEL PEDIDO',60,y+31);x.textAlign='right';x.font='bold 17px '+F;x.fillText(items.length+' producto(s) · '+un+' unidades',734,y+31);x.textAlign='left';
+ y+=50+28;x.fillStyle='#6b7c88';x.font='13px '+F;x.fillText('Gracias por su atención. Quedamos atentos a la confirmación y a la fecha de entrega.',40,y);
+ pages.forEach((p,k)=>{const c=p.x;c.fillStyle='#8a99a4';c.font='11px '+F;c.textAlign='center';c.fillText(nombre+' · Página '+(k+1)+' de '+pages.length,PW/2,PH-28);c.textAlign='left'});
+ return pdfFromJpegs(pages.map(p=>p.cv.toDataURL('image/jpeg',.92)),1240,1754)}
+async function pedPdf(pid,solo){const pv=S.prv.find(x=>x.id===pid);
+ const its=[...document.querySelectorAll('[data-ped="'+pid+'"]')].map(i=>({p:P(i.dataset.id),q:num(i.value)})).filter(x=>x.p&&x.q>0).map(x=>({n:x.p.nombre,sub:[x.p.marca,x.p.ref?'Ref. '+x.p.ref:'',x.p.cod].filter(Boolean).join(' · ')||'—',hay:x.p.stock,min:x.p.min,q:x.q}));
+ if(!its.length){toast('No hay cantidades para pedir');return}
+ toast('Preparando el PDF…');const d=new Date(),f=ymd(d),num='PD-'+f.replace(/-/g,'')+'-'+pad(d.getHours())+pad(d.getMinutes());
+ let blob;try{blob=await pedidoPDF(pv,its,num,f)}catch(e){toast('No se pudo crear el PDF');return}
+ const nom='Pedido_'+(pv?pv.nombre:'proveedor').replace(/[^A-Za-z0-9]+/g,'_')+'_'+f+'.pdf',file=new File([blob],nom,{type:'application/pdf'});
+ try{if(!solo&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Pedido '+S.cfg.nombre,text:'Pedido para '+(pv?pv.nombre:'')});return}}catch(e){if(e&&e.name==='AbortError')return}
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nom;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},800);toast('PDF descargado. Adjúntalo en WhatsApp.')}
 function pedWa(pid){const pv=S.prv.find(x=>x.id===pid),its=[...document.querySelectorAll('[data-ped="'+pid+'"]')].filter(i=>num(i.value)>0).map(i=>`• ${i.value} × ${i.dataset.n}`);
  const t=`Hola${pv?' '+pv.nombre:''}, necesito hacer este pedido para ${S.cfg.nombre}:\n`+its.join('\n')+'\nGracias.';window.open(wa(pv?pv.tel:'',t),'_blank')}
 
@@ -422,7 +472,7 @@ V.cfg=()=>{const c=S.cfg;return `<h2>Ajustes</h2>
  ${usuariosCard()}
  <div class="card"><b>Opciones de venta</b><label class="ml" style="margin-top:6px"><input type="checkbox" style="width:auto" ${c.neg?'checked':''} onchange="S.cfg.neg=this.checked;save()"> Permitir vender aunque el stock esté en cero</label></div>
  <div class="card"><b>Instalar como aplicación</b><p style="color:var(--mu);font-size:13px">Instálala una vez con internet y luego abre desde el ícono, sin conexión.</p>${deferred?'<button class="btn" onclick="instalar()">Instalar ahora</button>':'<p style="font-size:13px">En el celular: menú del navegador → “Agregar a pantalla de inicio” / “Instalar app”.</p>'}</div>
- <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2p</p></div>`};
+ <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2q</p></div>`};
 function logoUp(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),m=160,k=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.cfg.logo=c.toDataURL('image/png');save();render()};im.src=r.result};r.readAsDataURL(f)}
 function brandSave(){S.cfg.nombre=val('b_n').trim()||BRAND.nombre;S.cfg.color=val('b_c');S.cfg.acento=val('b_a');brand();save();render();toast('Marca guardada')}
 async function exportar(compartir){const txt=JSON.stringify(S),nombre='respaldo_'+S.cfg.nombre.replace(/[^A-Za-z0-9]+/g,'_')+'_'+hoy()+'.json';S.cfg.resp=hoy();save();
