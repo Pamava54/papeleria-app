@@ -1,15 +1,26 @@
-/* Service worker: deja la app disponible sin conexión.
-   Cambia VERSION cuando publiques una actualización. */
-const VERSION='papeleria-v2g';
-const ARCHIVOS=['./','./index.html','./manifest.json','./zxing.min.js','./icon-192.png','./icon-512.png','./icon-maskable-512.png'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(ARCHIVOS)).then(()=>self.skipWaiting()))});
-self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==VERSION).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+/* Papelería · service worker v3: busca primero la versión nueva (con internet) y usa la guardada si no hay señal */
+const V='pap-v3';
+const ARCH=['./','index.html','manifest.json','icon-192.png','icon-512.png','zxing.min.js'];
+self.addEventListener('install',e=>{
+  self.skipWaiting();
+  e.waitUntil(caches.open(V).then(c=>Promise.all(ARCH.map(u=>c.add(new Request(u,{cache:'reload'})).catch(()=>{})))));
+});
+self.addEventListener('activate',e=>{
+  e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==V).map(x=>caches.delete(x)))).then(()=>self.clients.claim()));
+});
 self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  const u=new URL(e.request.url);if(u.origin!==location.origin)return;
-  /* Primero la copia guardada (rápido y sin internet); si hay red, se actualiza en segundo plano */
-  e.respondWith(caches.match(e.request,{ignoreSearch:true}).then(hit=>{
-    const red=fetch(e.request).then(r=>{if(r&&r.ok){const cp=r.clone();caches.open(VERSION).then(c=>c.put(e.request,cp))}return r}).catch(()=>hit);
-    return hit||red;
-  }).catch(()=>caches.match('./index.html')));
+  const r=e.request;
+  if(r.method!=='GET'||new URL(r.url).origin!==location.origin)return;
+  e.respondWith((async()=>{
+    const c=await caches.open(V);
+    try{
+      const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),4000);
+      const n=await fetch(r,{cache:'no-store',signal:ctl.signal});clearTimeout(t);
+      if(n&&n.ok)c.put(r,n.clone());
+      return n;
+    }catch(err){
+      const h=await c.match(r,{ignoreSearch:true})||(r.mode==='navigate'?await c.match('index.html'):null);
+      return h||new Response('Sin conexión',{status:503,statusText:'Sin conexión'});
+    }
+  })());
 });
