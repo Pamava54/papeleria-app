@@ -83,6 +83,29 @@ body.dark table.t th{background:#223038}body.dark .banner{background:#2d2a1a;bor
 body.dark .topcard{background:#2d2a1a;border-color:#6b5a1d}body.dark .chips button{background:#1a252c!important;color:var(--tx)!important}
 .totbox{background:var(--a);color:#222;border-radius:14px;padding:10px 16px;margin:12px 0 4px}.totbox span{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}.totbox .big{font-size:36px;line-height:1.1}
 .btn.cobrar{background:var(--ok);font-size:19px;padding:15px 24px;flex:1;border-radius:14px;box-shadow:0 4px 14px rgba(26,138,74,.4)}
+nav.bar button.ex{display:none}nav.bar button svg{width:23px;height:23px}
+@media(min-width:900px){nav.bar button.ex{display:flex}nav.bar{overflow-y:auto}}
+.hello{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--c);background:linear-gradient(135deg,var(--c),color-mix(in srgb,var(--c) 65%,#000));color:#fff;border-radius:18px;padding:12px 16px;margin-bottom:12px;box-shadow:0 6px 18px rgba(0,0,0,.2)}
+.hello small{display:block;opacity:.85;font-size:12px}.hello b{font-size:19px}.hello .hs{text-align:right}.hello .hs b{font-size:21px}
+.mgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(min-width:700px){.mgrid{grid-template-columns:repeat(4,1fr);gap:14px;max-width:760px}}
+.tile{position:relative;background:#fff;border:1px solid var(--bd);border-radius:18px;padding:12px 4px 10px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;aspect-ratio:1/1.05;box-shadow:0 2px 6px rgba(20,40,60,.07);transition:transform .12s}
+.tile:active{transform:scale(.95)}
+.ti{width:54px;height:54px;border-radius:16px;display:flex;align-items:center;justify-content:center;background-image:linear-gradient(145deg,rgba(255,255,255,.3),rgba(0,0,0,.14));box-shadow:0 4px 10px rgba(0,0,0,.18)}
+.ti svg{width:30px;height:30px;stroke:#fff}
+.tl{font-size:12.5px;font-weight:600;color:var(--tx)}
+.tile .bd{position:absolute;top:7px;right:9px;min-width:20px;height:20px;border-radius:99px;background:var(--rd);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+body.dark .tile{background:#1a252c!important}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:70px 18px 24px;background:var(--c);background:linear-gradient(160deg,var(--c),color-mix(in srgb,var(--c) 50%,#000))}
+.authc{position:relative;width:100%;max-width:380px;background:#fff;border-radius:24px;padding:46px 20px 20px;box-shadow:0 20px 50px rgba(0,0,0,.35)}
+.authc .lg{position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:80px;height:80px;border-radius:24px;background:var(--a);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 20px rgba(0,0,0,.3);overflow:hidden}
+.authc .lg svg{width:42px;height:42px;stroke:#222}.authc .lg img{width:100%;height:100%;object-fit:cover}
+.authc h2{text-align:center;margin:0 0 2px}.authc .nm{text-align:center;color:var(--mu);font-size:13px;margin-bottom:8px}
+.authc .am{color:var(--mu);font-size:12.5px;margin:4px 0}
+.authc .lgb{width:100%;padding:13px;font-size:16px;margin-top:14px;border-radius:12px}
+.authc .lk{display:block;text-align:center;margin-top:12px;font-size:13.5px;color:var(--c)}
+.pw{position:relative}.pw input{padding-right:44px}.pw button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;padding:6px 8px;color:var(--mu)}.pw svg{width:20px;height:20px;display:block}
+body.dark .authc{background:#1a252c;color:var(--tx)}
 </style>
 <script src="zxing.min.js"></script>
 </head>
@@ -104,7 +127,7 @@ const addD=(f,n)=>{const d=new Date(f+'T12:00:00');d.setDate(d.getDate()+n);retu
 const diffD=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const r3=n=>Math.round(n*1000)/1000;
-let S=null,view='inicio',locked=false,cart=[],deferred=null,cam=null;
+let S=null,view='menu',cart=[],deferred=null,cam=null,user=null;
 
 /* ---------- Almacenamiento local (IndexedDB + copia en localStorage) ---------- */
 const DB={db:null,
@@ -115,7 +138,7 @@ let st=null;
 function save(){clearTimeout(st);st=setTimeout(persist,120)}
 async function persist(){if(!S)return;const s=JSON.stringify(S);await DB.set('state',s);try{localStorage.setItem('pap_state',s)}catch(e){}}
 window.addEventListener('pagehide',()=>{if(S){const s=JSON.stringify(S);try{localStorage.setItem('pap_state',s)}catch(e){}}});
-const nuevo=()=>({v:1,cfg:{nombre:BRAND.nombre,color:BRAND.color,acento:BRAND.acento,logo:'',pin:'',resp:'',base:0,neg:false,ini:false,nc:0,meta:0,dark:false,ver:2},listas:[],prod:[],prv:[],cli:[],mov:[],ven:[],com:[],abo:[],gas:[],cie:[],n:{ven:0,com:0}});
+const nuevo=()=>({v:1,cfg:{nombre:BRAND.nombre,color:BRAND.color,acento:BRAND.acento,logo:'',pin:'',resp:'',base:0,neg:false,ini:false,nc:0,meta:0,dark:false,ver:2,users:[]},listas:[],prod:[],prv:[],cli:[],mov:[],ven:[],com:[],abo:[],gas:[],cie:[],n:{ven:0,com:0}});
 function brand(){const c=S.cfg;document.documentElement.style.setProperty('--c',c.color||BRAND.color);document.documentElement.style.setProperty('--a',c.acento||BRAND.acento);document.title=c.nombre;$('#tc').setAttribute('content',c.color||BRAND.color)}
 
 /* ---------- Utilidades de datos ---------- */
@@ -168,15 +191,32 @@ function camFoto(c){closeScan();camCb&&camCb(c)}
 function stopCam(){if(cam){cam.on=false;try{cam.stream.getTracks().forEach(t=>t.stop())}catch(e){}cam=null}}
 
 /* ---------- Pantallas ---------- */
-const NAV=[['inicio','🏠','Inicio'],['vender','🛒','Vender'],['prod','📦','Productos'],['inv','📋','Inventario'],['etq','🏷','Etiquetas'],['compras','🚚','Compras'],['salidas','↩️','Salidas'],['fiado','📒','Fiado'],['caja','💵','Caja'],['gastos','💸','Gastos'],['rep','📊','Reportes'],['cfg','⚙️','Ajustes']];
+const IC={
+cart:'<circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.6 12.4a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L21 7H6"/>',
+box:'<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+clip:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 14l2 2 4-4"/>',
+tag:'<path d="M3 12V4h8l10 10-8 8z"/><circle cx="7.5" cy="8.5" r="1.2"/>',
+truck:'<path d="M2 6h11v10H2zM13 9h4l3 3v4h-7"/><circle cx="6" cy="18" r="1.8"/><circle cx="17" cy="18" r="1.8"/>',
+undo:'<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+book:'<path d="M5 3h12a2 2 0 0 1 2 2v16H7a2 2 0 0 1-2-2z"/><path d="M5 19a2 2 0 0 1 2-2h12M9 7h6M9 11h6"/>',
+cash:'<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v.01M18 14v.01"/>',
+receipt:'<path d="M5 3h14v18l-3-2-2 2-2-2-2 2-2-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+chart:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+grid:'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+sliders:'<path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/>',
+home:'<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+eye:'<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>'};
+const ico=(k,z)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"${z?` style="width:${z}px;height:${z}px"`:''}>${IC[k]}</svg>`;
+const MODS=[['vender','Vender','#0e7c86','cart'],['prod','Productos','#2563eb','box'],['inv','Inventario','#7c3aed','clip'],['etq','Etiquetas','#f59e0b','tag'],['compras','Compras','#ea580c','truck'],['salidas','Salidas','#e11d48','undo'],['fiado','Fiado','#65a30d','book'],['caja','Caja','#16a34a','cash'],['gastos','Gastos','#64748b','receipt'],['rep','Reportes','#0891b2','chart'],['inicio','Resumen','#4f46e5','grid'],['cfg','Ajustes','#475569','sliders']];
+const NAV=[['menu','Menú','home',1],['vender','Vender','cart',1],['prod','Productos','box',1],['caja','Caja','cash',1],['inicio','Resumen','grid',1]].concat(MODS.filter(m=>!['vender','prod','caja','inicio'].includes(m[0])).map(m=>[m[0],m[1],m[3],0]));
 function go(v){stopCam();view=v;render();window.scrollTo(0,0)}
 function render(){if(!S)return;const a=$('#app');if(view==='inv')stopCam();
- if(locked){a.innerHTML=`<div class="lock"><h2>${esc(S.cfg.nombre)}</h2><p>Escribe tu PIN</p><input id="pin" type="password" inputmode="numeric" maxlength="8" onkeydown="if(event.key==='Enter')unlock()"><p><button class="btn" onclick="unlock()">Entrar</button></p></div>`;setTimeout(()=>{const p=$('#pin');p&&p.focus()},50);return}
+ if(!user){a.innerHTML=authHTML();return}
  const c=S.cfg,on=navigator.onLine;
- a.innerHTML=`<header class="top">${c.logo?`<img src="${c.logo}" alt="">`:''}<b>${esc(c.nombre)}</b><span class="dot ${on?'':'off'}">${on?'En línea':'Sin conexión · todo funciona'}</span></header><main>${V[view]()}</main><nav class="bar">${NAV.map(n=>`<button class="${view===n[0]?'on':''}" onclick="go('${n[0]}')"><span>${n[1]}</span>${n[2]}</button>`).join('')}</nav>`;
+ a.innerHTML=`<header class="top">${c.logo?`<img src="${c.logo}" alt="">`:''}<b>${esc(c.nombre)}</b><span class="dot ${on?'':'off'}">${on?'En línea':'Sin conexión · todo funciona'}</span></header><main>${V[view]()}</main><nav class="bar">${NAV.map(n=>`<button class="${view===n[0]?'on':''} ${n[3]?'':'ex'}" onclick="go('${n[0]}')"><span>${ico(n[2])}</span>${n[1]}</button>`).join('')}</nav>`;
  if(view==='vender'){renderCart();posSearch('');const q=$('#q');if(q&&innerWidth>900)q.focus()}
  if(view==='inv')ctList()}
-function unlock(){if(val('pin')===S.cfg.pin){locked=false;render()}else{toast('PIN incorrecto');const p=$('#pin');if(p)p.value=''}}
 const V={};
 function banners(){let h='';const c=S.cfg,tiene=S.ven.length||S.mov.length;
  if(tiene&&(!c.resp||diffD(hoy(),c.resp)>=7))h+=`<div class="banner rd">⚠️ ${c.resp?'Hace '+diffD(hoy(),c.resp)+' días no haces copia de seguridad.':'Aún no has hecho copia de seguridad.'} Si se pierde el celular, se pierde la información. <button class="btn sm" onclick="exportar(true)">Hacer copia ahora</button></div>`;
@@ -199,6 +239,11 @@ V.inicio=()=>{const h=hoy(),vs=vOk(),vh=vs.filter(v=>v.f===h),mes=h.slice(0,7),v
  <div class="card"><b>Ventas de los últimos 7 días</b>${barSVG(dias)}</div>
  <div class="card"><b>Productos estrella del mes</b>${tp.length?tp.map(t=>`<div class="row"><div class="g">${esc(t[0])}<div style="height:7px;border-radius:5px;background:var(--a);width:${Math.max(6,Math.round(t[1]/mx*100))}%;margin-top:4px"></div></div><b>${fmt(t[1])}</b></div>`).join(''):'<p style="color:var(--mu)">Aún no hay ventas este mes.</p>'}</div>
  <div class="card"><b>Alertas de stock</b>${bajos.length?bajos.slice(0,8).map(p=>`<div class="row"><div class="g">${esc(p.nombre)}<small>Mínimo ${p.min}</small></div><span class="pill ${p.stock<=0?'rd':'am'}">${p.stock<=0?'Agotado':'Quedan '+p.stock}</span></div>`).join(''):'<p style="color:var(--mu)">Todo en orden ✔</p>'}</div>`};
+
+/* --- MENÚ PRINCIPAL --- */
+V.menu=()=>{const u=U(),h=new Date().getHours(),sal=h<12?'Buenos días':h<19?'Buenas tardes':'Buenas noches',vh=vOk().filter(v=>v.f===hoy()),
+ bajos=S.prod.filter(p=>!isKit(p)&&p.act!==false&&p.min>0&&p.stock<=p.min).length,deud=S.cli.filter(c=>saldoCli(c.id)>0).length,bd={prod:bajos,fiado:deud};
+ return `<div class="hello"><div><small>${sal}</small><b>${esc(u?u.nombre:'')}</b></div><div class="hs"><small>Ventas de hoy</small><b>${fmt(vh.reduce((a,v)=>a+v.total,0))}</b></div></div><div class="mgrid">${MODS.map(m=>`<button class="tile" onclick="go('${m[0]}')"><span class="ti" style="background-color:${m[2]}">${ico(m[3])}</span><span class="tl">${m[1]}</span>${bd[m[0]]?`<span class="bd">${bd[m[0]]}</span>`:''}</button>`).join('')}</div>`};
 
 /* --- Vender --- */
 function heroV(){const vh=vOk().filter(v=>v.f===hoy());return `<div class="hero"><div><small>Ventas de hoy</small><div class="hn">${fmt(vh.reduce((a,v)=>a+v.total,0))}</div></div><div class="hc">${vh.length}<small>ventas</small></div></div>`}
@@ -349,16 +394,16 @@ V.cfg=()=>{const c=S.cfg;return `<h2>Ajustes</h2>
  <div class="card"><b>Marca de tu negocio</b><label>Nombre</label><input id="b_n" value="${esc(c.nombre)}"><div class="f2"><div><label>Color principal</label><input id="b_c" type="color" value="${c.color}" style="height:42px;padding:3px"></div><div><label>Color de acento</label><input id="b_a" type="color" value="${c.acento}" style="height:42px;padding:3px"></div></div><label>Logo (opcional)</label><input type="file" accept="image/*" onchange="logoUp(this)"><div class="tb" style="margin-top:10px"><button class="btn" onclick="brandSave()">Guardar marca</button>${c.logo?'<button class="btn sec" onclick="S.cfg.logo=\'\';save();render()">Quitar logo</button>':''}</div></div>
  <div class="card"><b>Apariencia y metas</b><label class="ml"><input type="checkbox" style="width:auto" ${c.dark?'checked':''} onchange="setDark(this.checked)"> Modo oscuro</label><label>Meta de ventas diaria ($)</label><div class="ml"><input id="s_meta" type="number" inputmode="numeric" value="${c.meta||''}" placeholder="Ej. 300000"><button class="btn" onclick="S.cfg.meta=num(val('s_meta'));save();toast('Meta guardada')">Guardar</button></div></div>
  <div class="card"><b>Copia de seguridad</b><p style="color:var(--mu);font-size:13px">Tus datos viven solo en este equipo. Haz una copia cada semana y envíala por WhatsApp o guárdala en Drive cuando tengas internet. Última copia: <b>${c.resp||'nunca'}</b></p><div class="tb"><button class="btn" onclick="exportar(true)">Hacer copia / compartir</button><label class="btn sec" style="margin:0;cursor:pointer;color:var(--c)">Restaurar copia<input type="file" accept=".json,application/json" style="display:none" onchange="importar(this)"></label></div></div>
- <div class="card"><b>Seguridad</b><label>PIN para abrir la app (opcional, 4 a 8 números)</label><div class="ml"><input id="s_pin" inputmode="numeric" maxlength="8" value="${esc(c.pin)}"><button class="btn" onclick="pinSave()">Guardar</button></div><label class="ml" style="margin-top:10px"><input type="checkbox" style="width:auto" ${c.neg?'checked':''} onchange="S.cfg.neg=this.checked;save()"> Permitir vender aunque el stock esté en cero</label></div>
+ ${usuariosCard()}
+ <div class="card"><b>Opciones de venta</b><label class="ml" style="margin-top:6px"><input type="checkbox" style="width:auto" ${c.neg?'checked':''} onchange="S.cfg.neg=this.checked;save()"> Permitir vender aunque el stock esté en cero</label></div>
  <div class="card"><b>Instalar como aplicación</b><p style="color:var(--mu);font-size:13px">Instálala una vez con internet y luego abre desde el ícono, sin conexión.</p>${deferred?'<button class="btn" onclick="instalar()">Instalar ahora</button>':'<p style="font-size:13px">En el celular: menú del navegador → “Agregar a pantalla de inicio” / “Instalar app”.</p>'}</div>
- <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2k</p></div>`};
+ <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2l</p></div>`};
 function logoUp(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),m=160,k=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.cfg.logo=c.toDataURL('image/png');save();render()};im.src=r.result};r.readAsDataURL(f)}
 function brandSave(){S.cfg.nombre=val('b_n').trim()||BRAND.nombre;S.cfg.color=val('b_c');S.cfg.acento=val('b_a');brand();save();render();toast('Marca guardada')}
-function pinSave(){const p=val('s_pin').trim();if(p&&!/^\d{4,8}$/.test(p)){toast('El PIN debe tener 4 a 8 números');return}S.cfg.pin=p;save();toast(p?'PIN guardado':'PIN quitado')}
 async function exportar(compartir){const txt=JSON.stringify(S),nombre='respaldo_'+S.cfg.nombre.replace(/[^A-Za-z0-9]+/g,'_')+'_'+hoy()+'.json';S.cfg.resp=hoy();save();
  try{const file=new File([txt],nombre,{type:'application/json'});if(compartir&&navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'Copia de seguridad'});toast('Copia compartida');render();return}}catch(e){if(e&&e.name==='AbortError'){return}}
  descarga(nombre,txt,'application/json');toast('Copia descargada');render()}
-function importar(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.prod)||!o.cfg)throw 0;if(!confirm('Esto reemplaza TODOS los datos actuales por los de la copia. ¿Continuar?'))return;S=o;locked=false;brand();save();render();toast('Copia restaurada')}catch(e){toast('Ese archivo no es una copia válida')}};r.readAsText(f)}
+function importar(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);if(!Array.isArray(o.prod)||!o.cfg)throw 0;if(!confirm('Esto reemplaza TODOS los datos actuales por los de la copia. ¿Continuar?'))return;S=o;if(!Array.isArray(S.cfg.users))S.cfg.users=[];if(!S.cfg.users.some(u=>u.id===user))user=null;brand();save();render();toast('Copia restaurada')}catch(e){toast('Ese archivo no es una copia válida')}};r.readAsText(f)}
 function borrarTodo(){if(prompt('Para borrar TODO escribe BORRAR')!=='BORRAR')return;const c=S.cfg;S=nuevo();S.cfg=c;save();cart=[];render();toast('Datos borrados')}
 function instalar(){if(!deferred)return;deferred.prompt();deferred.userChoice.finally(()=>{deferred=null;render()})}
 window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferred=e;if(S&&view==='cfg')render()});
@@ -546,14 +591,52 @@ function sumarStock(id){const p=P(id);modal(`<h3>Sumar al inventario</h3><p><b>$
 function sumarOk(id){const q=num(val('ss_q')),c=num(val('ss_c'));if(q<=0){toast('Escribe cuántas unidades entran');return}crearCompra('',[{p:id,q,costo:c}],val('ss_p'),hoy(),'Entrada manual');closeM();toast('Se sumaron '+q+' unidades. Stock: '+P(id).stock);render()}
 
 function avisoNueva(){if(document.getElementById('upd'))return;const d=document.createElement('div');d.id='upd';d.style.cssText='position:fixed;left:10px;right:10px;bottom:84px;z-index:90;background:#222;color:#fff;border-radius:14px;padding:12px 14px;display:flex;gap:10px;align-items:center;box-shadow:0 6px 20px rgba(0,0,0,.4)';d.innerHTML='<span style="flex:1">🔄 Hay una versión nueva de la app</span><button class="btn am sm" onclick="location.reload()">Actualizar</button>';document.body.appendChild(d)}
+/* ===== ACCESO: USUARIOS Y CONTRASEÑA (guardados solo en este equipo) ===== */
+let am='login',fails=0,until=0;
+const U=()=>S&&S.cfg.users.find(u=>u.id===user)||null,nn=x=>String(x||'').trim().toLowerCase();
+async function hashPw(pw,salt){try{const e=new TextEncoder(),k=await crypto.subtle.importKey('raw',e.encode(pw),'PBKDF2',false,['deriveBits']),b=await crypto.subtle.deriveBits({name:'PBKDF2',salt:e.encode(salt),iterations:100000,hash:'SHA-256'},k,256);return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(err){let h=5381;const t=salt+':'+pw;for(let i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))>>>0;return 'f'+h.toString(16)}}
+async function mkUser(nombre,p,r,rol){const salt=uid(),rs=uid();return{id:uid(),nombre,rol,salt,hash:await hashPw(p,salt),rsalt:rs,rhash:await hashPw(nn(r),rs)}}
+const pwf=id=>`<div class="pw"><input id="${id}" type="password" autocomplete="off"><button type="button" onclick="pwToggle('${id}')" aria-label="Mostrar contraseña">${ico('eye')}</button></div>`;
+function pwToggle(id){const i=document.getElementById(id);if(i)i.type=i.type==='password'?'text':'password'}
+function authHTML(){const c=S.cfg,nuevoU=!c.users.length;if(nuevoU)am='crear';else if(am==='crear')am='login';
+ let f;
+ if(am==='crear')f=`<h2>Crea tu cuenta</h2><div class="nm">Serás el administrador de la app</div><label>Usuario</label><input id="a_u" autocapitalize="none" autocomplete="off" placeholder="Ej. maria"><label>Contraseña (mínimo 4 caracteres)</label>${pwf('a_p')}<label>Repite la contraseña</label>${pwf('a_p2')}<label>Palabra de recuperación</label><input id="a_r" autocapitalize="none" autocomplete="off" placeholder="Una palabra que solo tú recuerdes"><div class="am">Si algún día olvidas la contraseña, esta palabra te deja crear una nueva.</div><button class="btn lgb" onclick="doCrear()">Crear cuenta y entrar</button>`;
+ else if(am==='rec')f=`<h2>Recuperar contraseña</h2><div class="nm">Usa tu palabra de recuperación</div><label>Usuario</label><input id="a_u" autocapitalize="none" autocomplete="off"><label>Palabra de recuperación</label><input id="a_r" autocapitalize="none" autocomplete="off"><label>Nueva contraseña</label>${pwf('a_p')}<label>Repite la nueva contraseña</label>${pwf('a_p2')}<button class="btn lgb" onclick="doRec()">Cambiar contraseña</button><a class="lk" href="#" onclick="am='login';render();return false">← Volver a ingresar</a>`;
+ else f=`<h2>Bienvenido</h2><div class="nm">Ingresa para continuar</div><label>Usuario</label><input id="a_u" autocapitalize="none" autocomplete="off"><label>Contraseña</label>${pwf('a_p')}<label class="ml" style="margin-top:10px"><input id="a_rem" type="checkbox" style="width:auto"> Recordarme en este celular</label><button class="btn lgb" onclick="doLogin()">Ingresar</button><a class="lk" href="#" onclick="am='rec';render();return false">Olvidé mi contraseña</a>`;
+ return `<div class="auth"><div class="authc" onkeydown="authKey(event)"><div class="lg">${c.logo?`<img src="${c.logo}" alt="">`:ico('cart')}</div><div class="nm" style="font-weight:700;font-size:15px;color:var(--tx);margin:0 0 6px">${esc(c.nombre)}</div>${f}</div></div>`}
+function authKey(e){if(e.key!=='Enter')return;({login:doLogin,crear:doCrear,rec:doRec})[am]()}
+function bloq(){if(Date.now()<until){toast('Demasiados intentos. Espera unos segundos.');return true}return false}
+function falla(m){fails++;if(fails>=5){until=Date.now()+30000;fails=0;toast('Demasiados intentos. Espera 30 segundos.')}else toast(m)}
+async function doLogin(){if(bloq())return;const u=S.cfg.users.find(x=>nn(x.nombre)===nn(val('a_u')));
+ if(!u||await hashPw(val('a_p'),u.salt)!==u.hash){falla('Usuario o contraseña incorrectos');return}
+ fails=0;const r=document.getElementById('a_rem');entrar(u,r&&r.checked)}
+async function doCrear(){const nu=val('a_u').trim(),p=val('a_p'),p2=val('a_p2'),r=val('a_r');
+ if(nu.length<3){toast('El usuario debe tener al menos 3 letras');return}if(p.length<4){toast('La contraseña debe tener mínimo 4 caracteres');return}if(p!==p2){toast('Las contraseñas no coinciden');return}if(nn(r).length<3){toast('Escribe una palabra de recuperación');return}
+ if(S.cfg.users.some(x=>nn(x.nombre)===nn(nu))){toast('Ese usuario ya existe');return}
+ const u=await mkUser(nu,p,r,S.cfg.users.length?'user':'admin');S.cfg.users.push(u);save();entrar(u,false)}
+async function doRec(){if(bloq())return;const u=S.cfg.users.find(x=>nn(x.nombre)===nn(val('a_u'))),p=val('a_p');
+ if(p.length<4){toast('La contraseña debe tener mínimo 4 caracteres');return}if(p!==val('a_p2')){toast('Las contraseñas no coinciden');return}
+ if(!u||await hashPw(nn(val('a_r')),u.rsalt)!==u.rhash){falla('Usuario o palabra de recuperación incorrectos');return}
+ fails=0;u.salt=uid();u.hash=await hashPw(p,u.salt);save();am='login';render();toast('Contraseña cambiada. Ingresa con la nueva.')}
+function entrar(u,rem){user=u.id;try{if(rem)localStorage.setItem('pap_sess',u.id);else localStorage.removeItem('pap_sess')}catch(e){}view='menu';am='login';render();welcome()}
+function salir(){user=null;try{localStorage.removeItem('pap_sess')}catch(e){}am='login';cart=[];closeM();render()}
+function usuariosCard(){const me=U(),adm=me&&me.rol==='admin';if(!me)return '';
+ return `<div class="card"><b>Usuarios y acceso</b><p style="color:var(--mu);font-size:13px;margin:6px 0">Sesión iniciada como <b>${esc(me.nombre)}</b>${adm?' (administrador)':''}.</p><div class="tb"><button class="btn sec sm" onclick="pwForm()">Cambiar mi contraseña</button><button class="btn rd sm" onclick="salir()">Cerrar sesión</button></div>${adm?`<h3 style="margin-top:12px">Usuarios de la app</h3>${S.cfg.users.map(u=>`<div class="row"><div class="g">${esc(u.nombre)}<small>${u.rol==='admin'?'Administrador':'Usuario'}</small></div>${u.id!==user?`<button class="btn sm sec" onclick="userDel('${u.id}')">Quitar</button>`:''}</div>`).join('')}<div class="tb" style="margin-top:8px"><button class="btn sm" onclick="userForm()">+ Agregar usuario</button></div>`:''}</div>`}
+function pwForm(){modal(`<h3>Cambiar mi contraseña</h3><label>Contraseña actual</label>${pwf('m_a')}<label>Nueva contraseña (mínimo 4)</label>${pwf('m_p')}<label>Repite la nueva</label>${pwf('m_p2')}<div class="tb" style="margin-top:12px"><span class="sp"></span><button class="btn sec" onclick="closeM()">Cancelar</button><button class="btn" onclick="pwOk()">Guardar</button></div>`)}
+async function pwOk(){const u=U(),p=val('m_p');if(await hashPw(val('m_a'),u.salt)!==u.hash){toast('La contraseña actual no es correcta');return}if(p.length<4){toast('Mínimo 4 caracteres');return}if(p!==val('m_p2')){toast('Las contraseñas no coinciden');return}u.salt=uid();u.hash=await hashPw(p,u.salt);save();closeM();toast('Contraseña cambiada')}
+function userForm(){modal(`<h3>Agregar usuario</h3><label>Usuario</label><input id="n_u" autocapitalize="none" autocomplete="off"><label>Contraseña (mínimo 4)</label>${pwf('n_p')}<label>Palabra de recuperación</label><input id="n_r" autocapitalize="none" autocomplete="off"><div class="tb" style="margin-top:12px"><span class="sp"></span><button class="btn sec" onclick="closeM()">Cancelar</button><button class="btn" onclick="userOk()">Crear</button></div>`)}
+async function userOk(){const nu=val('n_u').trim(),p=val('n_p'),r=val('n_r');if(nu.length<3||p.length<4||nn(r).length<3){toast('Completa usuario (3+), contraseña (4+) y palabra de recuperación');return}if(S.cfg.users.some(x=>nn(x.nombre)===nn(nu))){toast('Ese usuario ya existe');return}S.cfg.users.push(await mkUser(nu,p,r,'user'));save();closeM();render();toast('Usuario creado')}
+function userDel(id){const u=S.cfg.users.find(x=>x.id===id);if(!u||!confirm('¿Quitar al usuario '+u.nombre+'?'))return;S.cfg.users=S.cfg.users.filter(x=>x.id!==id);save();render()}
+function welcome(){if(!S.cfg.ini&&!S.prod.length){S.cfg.ini=true;save();modal(`<h3>¡Bienvenida!</h3><p>Esta app funciona <b>sin internet</b>. Escribe el nombre de tu negocio para empezar. Puedes cambiar colores y logo en ⚙️ Ajustes.</p><label>Nombre del negocio</label><input id="w_n" value="${esc(S.cfg.nombre)}"><div class="tb" style="margin-top:12px"><button class="btn sec" onclick="S.cfg.nombre=val('w_n').trim()||S.cfg.nombre;brand();save();closeM();demo()">Ver con datos de ejemplo</button><span class="sp"></span><button class="btn" onclick="S.cfg.nombre=val('w_n').trim()||S.cfg.nombre;brand();save();closeM();render()">Empezar vacía</button></div>`)}}
+
 /* ---------- Inicio ---------- */
 async function init(){await DB.open();let raw=await DB.get('state');if(!raw){try{raw=localStorage.getItem('pap_state')}catch(e){}}
  try{S=raw?JSON.parse(raw):nuevo()}catch(e){S=nuevo()}
  if(!S.n)S.n={ven:0,com:0};['prod','prv','cli','mov','ven','com','abo','gas','cie','listas'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[]});S.cfg=Object.assign(nuevo().cfg,S.cfg||{});
- brand();if(S.cfg.dark)document.body.classList.add('dark');S.cfg.ver=2;locked=!!S.cfg.pin;if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
+ brand();if(S.cfg.dark)document.body.classList.add('dark');S.cfg.ver=2;if(!Array.isArray(S.cfg.users))S.cfg.users=[];try{const sid=localStorage.getItem('pap_sess');if(sid&&S.cfg.users.some(u=>u.id===sid))user=sid}catch(e){}if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();
  if('serviceWorker' in navigator&&location.protocol.startsWith('http')){const tenia=!!navigator.serviceWorker.controller;navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{r.update();document.addEventListener('visibilitychange',()=>{if(!document.hidden)r.update().catch(()=>{})})}).catch(()=>{});navigator.serviceWorker.addEventListener('controllerchange',()=>{if(tenia)avisoNueva()})}
  render();splash();
- if(!S.cfg.ini&&!S.prod.length){S.cfg.ini=true;save();modal(`<h3>¡Bienvenida!</h3><p>Esta app funciona <b>sin internet</b>. Escribe el nombre de tu negocio para empezar. Puedes cambiar colores y logo en ⚙️ Ajustes.</p><label>Nombre del negocio</label><input id="w_n" value="${esc(S.cfg.nombre)}"><div class="tb" style="margin-top:12px"><button class="btn sec" onclick="S.cfg.nombre=val('w_n').trim()||S.cfg.nombre;brand();save();closeM();demo()">Ver con datos de ejemplo</button><span class="sp"></span><button class="btn" onclick="S.cfg.nombre=val('w_n').trim()||S.cfg.nombre;brand();save();closeM();render()">Empezar vacía</button></div>`)}}
+}
 init();
 </script>
 </body>
