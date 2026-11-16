@@ -1,0 +1,26 @@
+SISTEMA DE PAPELERIA - PAMAVA Soluciones (version 1, funciona SIN internet)
+
+QUE TRAE
+Inicio (tablero con graficos y alertas) · Vender (lector USB o camara, ticket por WhatsApp, descuento, fiado)
+Productos y kits/combos · Compras y proveedores · Pedido sugerido por WhatsApp · Salidas y ajustes (danos, consumo, conteo)
+Fiado (abonos y recordatorio por WhatsApp) · Cierre de caja diario · Reportes y exportar a Excel · Respaldo · Marca propia · PIN
+
+COMO PUBLICARLO (una sola vez, necesita internet)
+1. En GitHub crea un repositorio (ej. papeleria-luz) y sube TODOS los archivos de esta carpeta: index.html, manifest.json, sw.js e iconos.
+2. Settings > Pages > Branch main > Save. Queda en https://TU_USUARIO.github.io/papeleria-luz/
+3. La duena abre esa direccion en el celular con internet UNA vez (en otro lugar si en su casa no hay) y la instala:
+   Chrome > menu > "Instalar app" / "Agregar a pantalla de inicio". Desde ahi abre con el icono y trabaja sin conexion.
+
+PERSONALIZAR PARA CADA CLIENTE
+- Nombre y colores por defecto: arriba de index.html, bloque BRAND (3 valores).
+- Despues la duena los cambia sola en Ajustes (nombre, colores, logo).
+- Para cambiar el nombre/colores del icono instalado: manifest.json (name, short_name, theme_color) y las imagenes icon-*.png.
+- Al publicar una actualizacion cambia VERSION en sw.js (ej. papeleria-v2) para que los equipos la reciban.
+
+IMPORTANTE PARA LA CLIENTA
+- Los datos quedan en SU equipo (no en la nube). Debe hacer la copia de seguridad (Ajustes > Hacer copia) cada semana
+  y enviarla por WhatsApp o guardarla en Drive. La app se lo recuerda.
+- Si cambia de celular: instala la app y usa Ajustes > Restaurar copia.
+- No uses la app en dos equipos a la vez: no se sincronizan entre si.
+- La camara como lector de codigos funciona en Chrome para Android; en iPhone usa un lector USB/Bluetooth o escribe el codigo.
+- El PIN protege contra curiosos, no contra expertos.
