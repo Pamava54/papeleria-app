@@ -137,7 +137,7 @@ const addD=(f,n)=>{const d=new Date(f+'T12:00:00');d.setDate(d.getDate()+n);retu
 const diffD=(a,b)=>Math.round((new Date(a+'T12:00:00')-new Date(b+'T12:00:00'))/864e5);
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const r3=n=>Math.round(n*1000)/1000;
-let S=null,view='menu',cart=[],deferred=null,cam=null,user=null,ls='';
+let S=null,view='menu',cart=[],deferred=null,cam=null,user=null,ls='',pend=null;
 
 /* ---------- Almacenamiento local (IndexedDB + copia en localStorage) ---------- */
 const DB={db:null,
@@ -229,7 +229,7 @@ out:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>'}
 const ico=(k,z)=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"${z?` style="width:${z}px;height:${z}px"`:''}>${IC[k]}</svg>`;
 const MODS=[['vender','Vender','#0e7c86','cart'],['prod','Productos','#2563eb','box'],['inv','Inventario','#7c3aed','clip'],['etq','Etiquetas','#f59e0b','tag'],['compras','Compras','#ea580c','truck'],['salidas','Salidas','#e11d48','undo'],['fiado','Fiado','#65a30d','book'],['caja','Caja','#16a34a','cash'],['gastos','Gastos','#64748b','receipt'],['rep','Reportes','#0891b2','chart'],['inicio','Resumen','#4f46e5','grid'],['cfg','Ajustes','#475569','sliders']];
 const NAV=[['menu','Menú','home',1],['vender','Vender','cart',1],['prod','Productos','box',1],['caja','Caja','cash',1],['inicio','Resumen','grid',1]].concat(MODS.filter(m=>!['vender','prod','caja','inicio'].includes(m[0])).map(m=>[m[0],m[1],m[3],0]));
-function go(v){stopCam();view=v;render();window.scrollTo(0,0)}
+function go(v){stopCam();pend=null;view=v;render();window.scrollTo(0,0)}
 function render(){if(!S)return;const a=$('#app');if(view==='inv'||view==='vender')stopCam();
  if(!user){a.innerHTML=authHTML();return}
  const c=S.cfg,on=navigator.onLine;
@@ -271,9 +271,30 @@ function posSearch(q){const e=$('#res');if(!e)return;q=(q||'').trim().toLowerCas
  if(!q){const cnt={};vOk().filter(v=>diffD(hoy(),v.f)<=30).forEach(v=>v.items.forEach(i=>cnt[i.p]=(cnt[i.p]||0)+i.q));L=S.prod.filter(p=>p.act!==false).sort((a,b)=>(cnt[b.id]||0)-(cnt[a.id]||0)).slice(0,8);var t='Más vendidos';}
  else{L=S.prod.filter(p=>p.act!==false&&((p.nombre+' '+(p.cod||'')+' '+(p.cat||'')+' '+(p.marca||'')+' '+(p.ref||'')).toLowerCase().includes(q))).slice(0,14);t='Resultados'}
  e.innerHTML=(S.prod.length?(t==='Más vendidos'?`<p style="color:var(--mu);margin:4px 0 0">Escribe o escanea un producto para agregarlo a la cuenta.</p>`:`<small style="color:var(--mu)">${t}</small><div class="pick">${L.map(p=>`<button onclick="addCart('${p.id}')">${esc(p.nombre)}<small>${fmt(p.precio)} · ${isKit(p)?'kit':'stock'} ${disp(p)}</small></button>`).join('')||'<span style="color:var(--mu)">Sin resultados</span>'}</div>`):'<p style="color:var(--mu)">Primero crea tus productos en 📦 Productos (o carga datos de ejemplo en ⚙️ Ajustes).</p>')}
-function posKey(e){if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q)return;const ex=S.prod.find(p=>p.act!==false&&p.cod&&p.cod===q);if(ex){addCart(ex.id);e.target.value='';posSearch('');return}
- const L=S.prod.filter(p=>p.act!==false&&p.nombre.toLowerCase().includes(q.toLowerCase()));if(L.length===1){addCart(L[0].id);e.target.value='';posSearch('')}else toast(L.length?'Elige el producto de la lista':'No existe ese producto')}
-function posCode(code){const p=S.prod.find(x=>x.act!==false&&x.cod===code);if(p){beep();addCart(p.id)}else{beep();setLast(`<div class="last bad"><small>✖ No encontrado</small><b>Código ${esc(code)} no está registrado</b><div class="tb" style="margin-top:6px"><button class="btn sm" onclick="posNuevo('${esc(code)}')">Crear producto</button></div></div>`)}}
+function posKey(e){if(e.key!=='Enter')return;const q=e.target.value.trim();if(!q)return;const ex=S.prod.find(p=>p.act!==false&&p.cod&&p.cod===q);if(ex){posPick(ex.id);e.target.value='';posSearch('');return}
+ const L=S.prod.filter(p=>p.act!==false&&p.nombre.toLowerCase().includes(q.toLowerCase()));if(L.length===1){posPick(L[0].id);e.target.value='';posSearch('')}else toast(L.length?'Elige el producto de la lista':'No existe ese producto')}
+function posCode(code){const p=S.prod.find(x=>x.act!==false&&x.cod===code);if(p){beep();posPick(p.id)}else{beep();setLast(`<div class="last bad"><small>✖ No encontrado</small><b>Código ${esc(code)} no está registrado</b><div class="tb" style="margin-top:6px"><button class="btn sm" onclick="posNuevo('${esc(code)}')">Crear producto</button></div></div>`)}}
+/* --- Escaneo en ventas: muestra el producto, pide unidades y deja elegir seguir o finalizar --- */
+function camHide(h){if(!(cam&&cam.on))return;cam.pause=h;const w=$('#camw');if(w)w.style.display=h?'none':'';if(h){const e=$('#lastscan');if(e)setTimeout(()=>e.scrollIntoView({behavior:'smooth',block:'center'}),60)}}
+function pendHTML(){const p=P(pend.id);if(!p)return '';const it=cart.find(x=>x.p===p.id),ya=it?it.q:0,pr=it?it.precio:p.precio;
+ return `<div class="last"><small>✔ Producto encontrado</small><b>${esc(p.nombre)}</b><div>${[p.marca,p.ref?'Ref. '+p.ref:'',p.cod].filter(Boolean).map(esc).join(' · ')}<br>${fmt(pr)} · ${isKit(p)?'kit':'stock'} <strong>${disp(p)}</strong>${ya?' · ya en la cuenta: <strong>'+ya+'</strong>':''}</div>
+ <label style="margin-top:8px">¿Cuántas unidades?</label><div class="ml" style="align-items:center"><div class="qty"><button onclick="pqSet(pend.q-1)">−</button><input id="pq" type="number" inputmode="decimal" value="${pend.q}" onchange="pqSet(this.value)" onkeydown="pqKey(event)"><button onclick="pqSet(pend.q+1)">+</button></div><b style="margin-left:10px;font-size:18px">${fmt(pend.q*pr)}</b></div>
+ <div style="margin-top:10px;display:grid;gap:8px"><button class="btn" style="width:100%" onclick="pqOk(false)">➕ Agregar y seguir escaneando</button><button class="btn am" style="width:100%" onclick="pqOk(true)">✔ Agregar y finalizar venta</button><button class="btn sec" style="width:100%" onclick="pqCancel()">Cancelar</button></div></div>`}
+function posPick(id){const p=P(id);if(!p)return;
+ if(pend&&pend.id!==id)pqOk(false,true);
+ if(pend&&pend.id===id)pend.q=r3(pend.q+1);else pend={id,q:1};
+ setLast(pendHTML());camHide(true);
+ if(!(cam&&cam.on)||innerWidth>900)setTimeout(()=>{const i=$('#pq');if(i){i.focus();i.select()}},40)}
+function pqSet(v){if(!pend)return;v=num(v);if(v<=0)v=1;pend.q=v;setLast(pendHTML());if(!(cam&&cam.on)||innerWidth>900)setTimeout(()=>{const i=$('#pq');if(i){i.focus();i.select()}},40)}
+function pqOk(fin,silent){if(!pend)return;const p=P(pend.id),it=cart.find(x=>x.p===pend.id),ya=it?it.q:0;
+ if(p&&!S.cfg.neg&&ya+pend.q>disp(p)){toast('Stock insuficiente: hay '+disp(p)+(ya?' y ya llevas '+ya:''));if(!silent)setLast(pendHTML());return}
+ const q=pend.q,id=pend.id;pend=null;if(!fin)camHide(false);addCart(id,q);
+ if(silent)return;
+ if(fin){const e=$('#q');if(e)e.blur();stopCam();const w=$('#camw');if(w){w.style.display='';w.classList.remove('on')}irCuenta()}else{const e=$('#q');if(e&&(!cam||!cam.on)&&innerWidth>900)e.focus()}}
+function pqCancel(){pend=null;camHide(false);setLast('');const e=$('#q');if(e&&innerWidth>900)e.focus()}
+function pqKey(e){if(e.key==='Escape'){pqCancel();return}if(e.key!=='Enter')return;e.preventDefault();const v=e.target.value.trim();
+ if(/^\d{6,}$/.test(v)){e.target.value=pend?pend.q:1;pqOk(false,true);posCode(v);return}
+ pend.q=Math.max(0.001,num(v)||1);pqOk(false)}
 function posNuevo(code){stopCam();prodForm();setTimeout(()=>{const i=$('#f_cod');if(i)i.value=code},50)}
 function irCuenta(){const e=document.getElementById('cart');if(e)e.scrollIntoView({behavior:'smooth',block:'start'})}
 function addCart(id,n){const p=P(id);if(!p)return;n=n||1;let it=cart.find(x=>x.p===id);const ya=it?it.q:0;
@@ -295,7 +316,7 @@ function cobrar(){if(!cart.length)return;const sub=cart.reduce((a,i)=>a+i.q*i.pr
  if(medio==='fiado'&&!cli){toast('Elige el cliente del fiado');return}
  if(medio==='fiado'){const fi=fiadoInfo(cli),nu=fi.sal+sub-d,cn=cliN(cli);if(fi.cupo&&nu>fi.cupo&&!confirm(cn+' superaría su cupo de '+fmt(fi.cupo)+' (quedaría debiendo '+fmt(nu)+'). ¿Vender de todos modos?'))return;if(fi.mora>0&&!confirm(cn+' tiene una deuda vencida hace '+fi.mora+' días ('+fmt(fi.sal)+'). ¿Fiar de todos modos?'))return}
  for(const it of cart){const p=P(it.p);if(!S.cfg.neg&&it.q>disp(p)){toast('Stock insuficiente de '+p.nombre);return}}
- const v=crearVenta(cart,medio,cli,d);cart=[];ls='';render();ticket(v.id,true)}
+ const v=crearVenta(cart,medio,cli,d);cart=[];ls='';pend=null;render();ticket(v.id,true)}
 function ticketTxt(v){return `${S.cfg.nombre}\nVenta ${v.num} · ${v.f} ${v.h}\n`+(v.cli?'Cliente: '+cliN(v.cli)+'\n':'')+'------------------------\n'+v.items.map(i=>`${i.q} x ${i.n}\n   ${fmt(i.q*i.precio)}`).join('\n')+'\n------------------------\n'+(v.desc?'Descuento: '+fmt(v.desc)+'\n':'')+`TOTAL: ${fmt(v.total)}\nPago: ${v.medio}${v.medio==='fiado'?' (queda debiendo)':''}\n¡Gracias por tu compra!`}
 function ticket(id,nuevaV){const v=S.ven.find(x=>x.id===id),t=ticketTxt(v),c=S.cli.find(x=>x.id===v.cli);
  modal(`<h3>${nuevaV?'✔ Venta registrada':'Venta '+v.num}${v.anulada?' (ANULADA)':''}</h3><div class="ticket">${esc(t)}</div><div class="tb noprint" style="margin-top:10px"><button class="btn am" onclick="ventaPdf('${v.id}')">📄 PDF</button><a class="btn" style="text-decoration:none" target="_blank" href="${wa(c?c.tel:'',t)}">📲 WhatsApp</a><button class="btn sec" onclick="window.print()">🖨 Imprimir</button>${!v.anulada&&!nuevaV?`<button class="btn rd" onclick="anular('${v.id}')">Anular venta</button>`:''}<span class="sp"></span><button class="btn sec" onclick="closeM()">Cerrar</button></div>`)}
@@ -548,7 +569,7 @@ V.cfg=()=>{const c=S.cfg;return `<h2>Ajustes</h2>
  ${usuariosCard()}
  <div class="card"><b>Opciones de venta</b><label class="ml" style="margin-top:6px"><input type="checkbox" style="width:auto" ${c.neg?'checked':''} onchange="S.cfg.neg=this.checked;save()"> Permitir vender aunque el stock esté en cero</label></div>
  <div class="card"><b>Instalar como aplicación</b><p style="color:var(--mu);font-size:13px">Instálala una vez con internet y luego abre desde el ícono, sin conexión.</p>${deferred?'<button class="btn" onclick="instalar()">Instalar ahora</button>':'<p style="font-size:13px">En el celular: menú del navegador → “Agregar a pantalla de inicio” / “Instalar app”.</p>'}</div>
- <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2u</p></div>`};
+ <div class="card"><b>Datos</b><div class="tb"><button class="btn sec" onclick="demo()">Cargar datos de ejemplo</button><button class="btn rd" onclick="borrarTodo()">Borrar todo</button></div><p style="color:var(--mu);font-size:12px;margin:10px 0 0">Versión 2w</p></div>`};
 function logoUp(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas'),m=160,k=Math.min(1,m/Math.max(im.width,im.height));c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);S.cfg.logo=c.toDataURL('image/png');save();render()};im.src=r.result};r.readAsDataURL(f)}
 function brandSave(){S.cfg.nombre=val('b_n').trim()||BRAND.nombre;S.cfg.color=val('b_c');S.cfg.acento=val('b_a');brand();save();render();toast('Marca guardada')}
 async function exportar(compartir){const txt=JSON.stringify(S),nombre='respaldo_'+S.cfg.nombre.replace(/[^A-Za-z0-9]+/g,'_')+'_'+hoy()+'.json';S.cfg.resp=hoy();save();
